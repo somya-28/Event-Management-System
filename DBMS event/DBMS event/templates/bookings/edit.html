@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Booking - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-pencil"></i> Edit Booking</h1>
+    <p>Update booking information</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('booking_edit', id=booking.id) }}">
+            <div class="mb-3">
+                <label for="event_id" class="form-label">Event <span class="text-danger">*</span></label>
+                <select class="form-select" id="event_id" name="event_id" required>
+                    {% for event in events %}
+                        <option value="{{ event.id }}" {% if event.id == booking.event_id %}selected{% endif %}>
+                            {{ event.name }} - {{ event.event_date.strftime('%d %b %Y') }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="booking_type" class="form-label">Booking Type <span class="text-danger">*</span></label>
+                    <select class="form-select" id="booking_type" name="booking_type" required>
+                        <option value="Venue" {% if booking.booking_type == 'Venue' %}selected{% endif %}>Venue</option>
+                        <option value="Catering" {% if booking.booking_type == 'Catering' %}selected{% endif %}>Catering</option>
+                        <option value="Photography" {% if booking.booking_type == 'Photography' %}selected{% endif %}>Photography</option>
+                        <option value="Music" {% if booking.booking_type == 'Music' %}selected{% endif %}>Music</option>
+                        <option value="Decoration" {% if booking.booking_type == 'Decoration' %}selected{% endif %}>Decoration</option>
+                        <option value="Other" {% if booking.booking_type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="vendor_name" class="form-label">Vendor Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="vendor_name" name="vendor_name" value="{{ booking.vendor_name }}" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ booking.description or '' }}</textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="cost" class="form-label">Cost (₹) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="cost" name="cost" step="0.01" value="{{ booking.cost }}" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="booking_date" class="form-label">Booking Date</label>
+                    <input type="date" class="form-control" id="booking_date" name="booking_date" value="{{ booking.booking_date.strftime('%Y-%m-%d') if booking.booking_date else '' }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="Pending" {% if booking.status == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Confirmed" {% if booking.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="Paid" {% if booking.status == 'Paid' %}selected{% endif %}>Paid</option>
+                        <option value="Cancelled" {% if booking.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="contact_info" class="form-label">Contact Info</label>
+                    <input type="text" class="form-control" id="contact_info" name="contact_info" value="{{ booking.contact_info or '' }}">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="2">{{ booking.notes or '' }}</textarea>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('bookings_list') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Update Booking
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

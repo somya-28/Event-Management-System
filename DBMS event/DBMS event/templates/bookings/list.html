@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-bookmark-check"></i> Bookings</h1>
+        <p>Manage all your event bookings</p>
+    </div>
+    <a href="{{ url_for('booking_create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Create Booking
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if bookings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Event</th>
+                            <th>Type</th>
+                            <th>Vendor</th>
+                            <th>Description</th>
+                            <th>Cost</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ booking.event.name }}</td>
+                            <td><span class="badge bg-info">{{ booking.booking_type }}</span></td>
+                            <td><strong>{{ booking.vendor_name }}</strong></td>
+                            <td>{{ booking.description[:50] + '...' if booking.description and booking.description|length > 50 else booking.description or 'N/A' }}</td>
+                            <td>₹{{ "{:,.2f}".format(booking.cost) }}</td>
+                            <td>
+                                {% if booking.status == 'Confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                {% elif booking.status == 'Paid' %}
+                                    <span class="badge bg-primary">Paid</span>
+                                {% elif booking.status == 'Cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('booking_edit', id=booking.id) }}" class="btn btn-outline-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" onclick="deleteBooking({{ booking.id }})" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-bookmark-x" style="font-size: 64px; color: #d1d5db;"></i>
+                <p class="mt-3 text-muted">No bookings found. Create your first booking!</p>
+                <a href="{{ url_for('booking_create') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle"></i> Create Booking
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteBooking(id) {
+    if (confirm('Are you sure you want to delete this booking?')) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/bookings/${id}/delete`;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

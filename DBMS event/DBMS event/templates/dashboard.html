@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+        <p>Overview of your event management system</p>
+    </div>
+    <a href="{{ url_for('check_in_page') }}" class="btn btn-primary d-flex align-items-center gap-2">
+        <i class="bi bi-qr-code-scan"></i> Open Scanner
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Events</p>
+                    <h2 class="mb-0">{{ total_events }}</h2>
+                </div>
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Upcoming Events</p>
+                    <h2 class="mb-0">{{ upcoming_events }}</h2>
+                </div>
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-calendar-plus"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Guests</p>
+                    <h2 class="mb-0">{{ total_guests }}</h2>
+                </div>
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Bookings</p>
+                    <h2 class="mb-0">{{ total_bookings }}</h2>
+                </div>
+                <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-bookmark-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget and RSVP Overview -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-cash-stack"></i> Budget Overview
+            </div>
+            <div class="card-body">
+                <h3 class="text-primary">₹{{ "{:,.2f}".format(total_budget) }}</h3>
+                <p class="text-muted">Total budget across all events</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pie-chart"></i> RSVP Status
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span><span class="badge bg-success">Accepted</span></span>
+                    <strong>{{ rsvp_stats.accepted }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span><span class="badge bg-warning">Pending</span></span>
+                    <strong>{{ rsvp_stats.pending }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span><span class="badge bg-danger">Declined</span></span>
+                    <strong>{{ rsvp_stats.declined }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Events -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history"></i> Recent Events</span>
+        <a href="{{ url_for('events_list') }}" class="btn btn-sm btn-primary">View All</a>
+    </div>
+    <div class="card-body">
+        {% if recent_events %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Event Name</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Budget</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in recent_events %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ event.name }}</strong></td>
+                            <td>{{ event.event_date.strftime('%d %b %Y') }}</td>
+                            <td>{{ event.location or 'N/A' }}</td>
+                            <td>₹{{ "{:,.2f}".format(event.budget) }}</td>
+                            <td>
+                                {% if event.status == 'Planning' %}
+                                    <span class="badge bg-warning">Planning</span>
+                                {% elif event.status == 'Confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                {% elif event.status == 'Completed' %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('event_detail', id=event.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-center text-muted py-4">No events found. <a href="{{ url_for('event_create') }}">Create your first event</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

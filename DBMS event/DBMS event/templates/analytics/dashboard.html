@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-graph-up"></i> Analytics Dashboard</h1>
+        <p>Comprehensive insights and statistics</p>
+    </div>
+    <button class="btn btn-primary" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Total Events</h6>
+                        <h2 class="mb-0">{{ stats.total_events }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-event stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Total Guests</h6>
+                        <h2 class="mb-0">{{ stats.total_guests }}</h2>
+                    </div>
+                    <i class="bi bi-people stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Checked In</h6>
+                        <h2 class="mb-0">{{ stats.checked_in_count }}</h2>
+                    </div>
+                    <i class="bi bi-check-circle stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-1">Total Budget</h6>
+                        <h2 class="mb-0">₹{{ "{:,.0f}".format(stats.total_budget) }}</h2>
+                    </div>
+                    <i class="bi bi-cash-coin stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> RSVP Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="rsvpChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check-circle"></i> Check-in Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="checkinChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Guests per Event</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="guestsPerEventChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Budget vs Actual Cost</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="budgetChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Analytics Section -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Budget Breakdown by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="budgetBreakdownChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-wallet2"></i> Budget Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Total Budget</label>
+                    <h4 class="text-primary">₹{{ "{:,.0f}".format(stats.total_budget) }}</h4>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Total Spent</label>
+                    <h4 class="text-danger">₹{{ "{:,.0f}".format(stats.total_actual_cost) }}</h4>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Budget Left</label>
+                    <h4 class="{% if remaining_budget >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ₹{{ "{:,.0f}".format(remaining_budget) }}
+                    </h4>
+                </div>
+                <div class="progress" style="height: 25px;">
+                    {% set budget_used_percent = (stats.total_actual_cost / stats.total_budget * 100) if stats.total_budget > 0 else 0 %}
+                    <div class="progress-bar {% if budget_used_percent > 90 %}bg-danger{% elif budget_used_percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ '%.1f'|format(budget_used_percent) }}%">
+                        {{ "%.1f"|format(budget_used_percent) }}% Used
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Statistics Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Event Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Name</th>
+                                <th>Total Guests</th>
+                                <th>Checked In</th>
+                                <th>Accepted</th>
+                                <th>Budget</th>
+                                <th>Actual Cost</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in event_stats %}
+                            <tr>
+                                <td><strong>{{ event.name }}</strong></td>
+                                <td>{{ event.guest_count }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ event.checked_in }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ event.accepted }}</span>
+                                </td>
+                                <td>₹{{ "{:,.0f}".format(event.budget) }}</td>
+                                <td>₹{{ "{:,.0f}".format(event.actual_cost) }}</td>
+                                <td>
+                                    {% if event.actual_cost <= event.budget %}
+                                        <span class="badge bg-success">On Budget</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Over Budget</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-icon {
+        font-size: 48px;
+        opacity: 0.7;
+    }
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Chart colors
+    const colors = {
+        primary: '#667eea',
+        success: '#10b981',
+        danger: '#ef4444',
+        warning: '#f59e0b',
+        info: '#06b6d4',
+        secondary: '#6b7280'
+    };
+
+    // RSVP Status Chart
+    const rsvpCtx = document.getElementById('rsvpChart');
+    const rsvpChart = new Chart(rsvpCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Accepted', 'Declined', 'Pending'],
+            datasets: [{
+                data: [{{ stats.rsvp_accepted }}, {{ stats.rsvp_declined }}, {{ stats.rsvp_pending }}],
+                backgroundColor: [colors.success, colors.danger, colors.warning],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Check-in Status Chart
+    const checkinCtx = document.getElementById('checkinChart');
+    const checkinChart = new Chart(checkinCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Checked In', 'Not Checked In'],
+            datasets: [{
+                data: [{{ stats.checked_in_count }}, {{ stats.total_guests - stats.checked_in_count }}],
+                backgroundColor: [colors.info, colors.secondary],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Guests per Event Chart
+    const guestsPerEventCtx = document.getElementById('guestsPerEventChart');
+    const guestsPerEventChart = new Chart(guestsPerEventCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for event in event_stats %}'{{ event.name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Number of Guests',
+                data: [{% for event in event_stats %}{{ event.guest_count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: colors.primary,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Budget vs Actual Chart
+    const budgetCtx = document.getElementById('budgetChart');
+    const budgetChart = new Chart(budgetCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for event in event_stats %}'{{ event.name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [
+                {
+                    label: 'Budget',
+                    data: [{% for event in event_stats %}{{ event.budget }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: colors.success,
+                    borderRadius: 5
+                },
+                {
+                    label: 'Actual Cost',
+                    data: [{% for event in event_stats %}{{ event.actual_cost }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: colors.warning,
+                    borderRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Budget Breakdown by Category Chart
+    const budgetBreakdownCtx = document.getElementById('budgetBreakdownChart');
+    const budgetBreakdownData = {{ budget_by_type|tojson }};
+    
+    const budgetBreakdownChart = new Chart(budgetBreakdownCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(budgetBreakdownData),
+            datasets: [{
+                data: Object.values(budgetBreakdownData),
+                backgroundColor: [
+                    colors.primary,
+                    colors.success, 
+                    colors.warning,
+                    colors.danger,
+                    colors.info,
+                    colors.secondary,
+                    '#8b5cf6',
+                    '#ec4899'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ₹${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Refresh data function
+    function refreshData() {
+        location.reload();
+    }
+</script>
+{% endblock %}

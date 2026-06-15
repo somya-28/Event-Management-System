@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Check-in History - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-clock-history"></i> Check-in History</h1>
+        <p>Live tracking of event attendees and check-in times</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('check_in_page') }}" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-qr-code-scan"></i> Open Scanner
+        </a>
+    </div>
+</div>
+
+<!-- Attendance Stats Grid -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Checked In</p>
+                    <h2 class="mb-0 text-success"><i class="bi bi-person-check-fill"></i> {{ total_checked_in }}</h2>
+                </div>
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">Out of {{ total_guests }} registered guests</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Remaining Guests</p>
+                    <h2 class="mb-0 text-warning"><i class="bi bi-hourglass-split"></i> {{ not_checked_in }}</h2>
+                </div>
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">Yet to arrive</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Attendance Rate</p>
+                    <h2 class="mb-0 text-primary"><i class="bi bi-percent"></i> {{ "%.1f"|format(attendance_rate) }}</h2>
+                </div>
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+            </div>
+            <div class="mt-2">
+                <div class="progress" style="height: 6px; border-radius: 3px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ attendance_rate }}%;"
+                        aria-valuenow="{{ attendance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Controls Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('check_ins_list') }}" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="eventFilter" class="form-label font-weight-bold"><i class="bi bi-funnel"></i> Filter by
+                        Event</label>
+                    <select class="form-select" id="eventFilter" name="event_id" onchange="this.form.submit()">
+                        <option value="">All Events</option>
+                        {% for event in events %}
+                        <option value="{{ event.id }}" {% if selected_event_id == event.id %}selected{% endif %}>
+                            {{ event.name }} ({{ event.event_date.strftime('%d %b %Y') }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="searchInput" class="form-label font-weight-bold"><i class="bi bi-search"></i> Search
+                        Attendees</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="searchInput"
+                            placeholder="Search by name, email, or phone...">
+                        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()"
+                            title="Refresh List">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History Table Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom">
+        <span class="font-weight-bold text-dark">
+            <i class="bi bi-list-check"></i> Checked-in Attendees
+        </span>
+        <span class="badge bg-primary">{{ guests|length }} checked in</span>
+    </div>
+    <div class="card-body p-0">
+        {% if guests %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="checkinsTable">
+                <thead class="table-light text-muted">
+                    <tr>
+                        <th class="ps-4">#</th>
+                        <th>Guest Name</th>
+                        <th>Event</th>
+                        <th>Check-in Time</th>
+                        <th>Group Size</th>
+                        <th class="pe-4">Contact Info</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for guest in guests %}
+                    <tr>
+                        <td class="ps-4 text-muted">{{ loop.index }}</td>
+                        <td>
+                            <div>
+                                <h6 class="mb-0 text-dark">{{ guest.name }}</h6>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ guest.event.name }}</span>
+                        </td>
+                        <td>
+                            <div class="text-success font-weight-bold d-flex align-items-center gap-1">
+                                <i class="bi bi-calendar2-check"></i>
+                                {{ guest.check_in_time.strftime('%d %b %Y, %I:%M %p') if guest.check_in_time else 'N/A' }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary rounded-pill">{{ guest.guest_count }} {% if guest.guest_count > 1 %}guests{% else %}guest{% endif %}</span>
+                        </td>
+                        <td class="pe-4">
+                            <div class="text-muted small">
+                                {% if guest.email %}
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-envelope"></i> {{ guest.email }}
+                                </div>
+                                {% endif %}
+                                {% if guest.phone %}
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    <i class="bi bi-telephone"></i> {{ guest.phone }}
+                                </div>
+                                {% endif %}
+                                {% if not guest.email and not guest.phone %}
+                                <span>No contact info</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="avatar avatar-lg bg-light text-muted rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center"
+                style="width: 70px; height: 70px;">
+                <i class="bi bi-qr-code-scan" style="font-size: 32px;"></i>
+            </div>
+            <h5>No check-ins logged yet</h5>
+            <p class="text-muted">Once guests are checked in using the scanner, they will appear here in real-time.</p>
+            <a href="{{ url_for('check_in_page') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-camera"></i> Start Scanning Now
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Client-side quick search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#checkinsTable tbody tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(filter)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

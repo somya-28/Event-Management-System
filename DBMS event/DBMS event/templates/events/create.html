@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Create Event - Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-plus-circle"></i> Create New Event</h1>
+    <p>Add a new event to your system</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('event_create') }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">Event Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="Planning" selected>Planning</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="event_date" class="form-label">Event Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="event_date" name="event_date" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="event_time" class="form-label">Event Time</label>
+                    <input type="time" class="form-control" id="event_time" name="event_time">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" name="location" placeholder="e.g., Grand Hotel, Mumbai">
+                    <small class="text-muted">Enter venue address for map location</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="venue_capacity" class="form-label">Venue Capacity</label>
+                    <input type="number" class="form-control" id="venue_capacity" name="venue_capacity" min="1" placeholder="e.g., 100">
+                    <small class="text-muted">Maximum number of guests allowed</small>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="budget" class="form-label">Budget (₹)</label>
+                    <input type="number" class="form-control" id="budget" name="budget" step="0.01" value="0">
+                </div>
+            </div>
+            
+            <!-- Map Container -->
+            <div class="mb-3">
+                <label class="form-label">Venue Location on Map</label>
+                <div id="map" style="height: 300px; border-radius: 8px;"></div>
+                <input type="hidden" id="latitude" name="latitude">
+                <input type="hidden" id="longitude" name="longitude">
+                <small class="text-muted">Click on the map to set the venue location or enter an address above</small>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('events_list') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Create Event
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrcdeHQ3DFHIhIyaQ6DX7pLLDOKRy1jnA&libraries=places"></script>
+<script>
+    let map;
+    let marker;
+    let geocoder;
+
+    function initMap() {
+        // Default to India center
+        const defaultLocation = { lat: 20.5937, lng: 78.9629 };
+        
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 5,
+            center: defaultLocation
+        });
+        
+        geocoder = new google.maps.Geocoder();
+        
+        // Click on map to set location
+        map.addListener('click', function(event) {
+            placeMarker(event.latLng);
+        });
+        
+        // Autocomplete for location input
+        const locationInput = document.getElementById('location');
+        const autocomplete = new google.maps.places.Autocomplete(locationInput);
+        
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (place.geometry) {
+                map.setCenter(place.geometry.location);
+                map.setZoom(15);
+                placeMarker(place.geometry.location);
+            }
+        });
+    }
+    
+    function placeMarker(location) {
+        if (marker) {
+            marker.setPosition(location);
+        } else {
+            marker = new google.maps.Marker({
+                position: location,
+                map: map
+            });
+        }
+        
+        document.getElementById('latitude').value = location.lat();
+        document.getElementById('longitude').value = location.lng();
+        
+        // Reverse geocode to get address
+        geocoder.geocode({ location: location }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+                document.getElementById('location').value = results[0].formatted_address;
+            }
+        });
+    }
+    
+    // Initialize map on page load
+    window.addEventListener('load', initMap);
+</script>
+{% endblock %}
